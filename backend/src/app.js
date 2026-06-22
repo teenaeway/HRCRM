@@ -65,8 +65,8 @@ app.use('/api/reports', reportRoutes);
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
-// Catch-all route for React Router
-app.get('*', (req, res) => {
+// Catch-all route for React Router (Express 5 compatible)
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
