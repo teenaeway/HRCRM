@@ -1,0 +1,7 @@
+node_modules
+.env
+backup1730
+.agents
+scratch
+frontend/dist
+backend/uploads
