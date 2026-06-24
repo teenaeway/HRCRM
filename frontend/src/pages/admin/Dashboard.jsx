@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { Users, Briefcase, FileText, Activity } from 'lucide-react';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useRealtimeSync('Candidate', () => setRefreshTrigger(prev => prev + 1));
+  useRealtimeSync('Client', () => setRefreshTrigger(prev => prev + 1));
+  useRealtimeSync('Employee', () => setRefreshTrigger(prev => prev + 1));
+  useRealtimeSync('Activity', () => setRefreshTrigger(prev => prev + 1));
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchDashboardData = async () => {
     try {

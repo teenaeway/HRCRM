@@ -2,12 +2,19 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { Building, Activity, Bell, Users } from 'lucide-react';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function EmployeeDashboard() {
   const { user } = useAuthStore();
   const [data, setData] = useState(null);
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useRealtimeSync('Candidate', () => setRefreshTrigger(prev => prev + 1));
+  useRealtimeSync('Client', () => setRefreshTrigger(prev => prev + 1));
+  useRealtimeSync('Activity', () => setRefreshTrigger(prev => prev + 1));
+  useRealtimeSync('Notice', () => setRefreshTrigger(prev => prev + 1));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,7 +32,7 @@ export default function EmployeeDashboard() {
       }
     };
     fetchData();
-  }, []);
+  }, [refreshTrigger]);
 
   if (loading) {
     return <div className="py-20 text-center"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div></div>;

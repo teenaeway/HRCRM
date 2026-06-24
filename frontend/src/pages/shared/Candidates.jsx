@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 const STATUS_OPTIONS = [
   'Registered', 'Screening', 'Contacted', 'Interested',
@@ -52,6 +53,11 @@ export default function Candidates() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => { fetchCandidates(); }, []);
+
+  // Sync data in real-time
+  useRealtimeSync('Candidate', () => {
+    fetchCandidates(meta.page);
+  });
 
   const fetchCandidates = async (page = 1) => {
     try {

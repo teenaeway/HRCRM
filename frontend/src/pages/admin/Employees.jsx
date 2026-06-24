@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function AdminEmployees() {
   const [employees, setEmployees] = useState([]);
@@ -25,6 +26,10 @@ export default function AdminEmployees() {
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  useRealtimeSync('Employee', () => {
+    fetchEmployees();
+  });
 
   const fetchEmployees = async () => {
     try {

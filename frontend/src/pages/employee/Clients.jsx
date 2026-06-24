@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function EmployeeClients() {
   const [clients, setClients] = useState([]);
@@ -7,10 +8,16 @@ export default function EmployeeClients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
 
   useEffect(() => {
     fetchMyClients();
   }, []);
+
+  useRealtimeSync('Client', () => {
+    fetchMyClients(meta.page);
+  });
 
   const fetchMyClients = async (page = 1) => {
     try {
@@ -27,7 +34,8 @@ export default function EmployeeClients() {
 
   const filteredClients = clients.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.industry && c.industry.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (c.industryType && c.industryType.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (c.recruitmentPositionRequired && c.recruitmentPositionRequired.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (c.contactName && c.contactName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -84,16 +92,20 @@ export default function EmployeeClients() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClients.map((client) => (
-            <div key={client.id} className="card-hover p-6 flex flex-col justify-between h-full space-y-6">
+            <div 
+              key={client.id} 
+              className="card-hover p-6 flex flex-col justify-between h-full space-y-6 cursor-pointer"
+              onClick={() => { setSelectedClient(client); setIsModalOpen(true); }}
+            >
               <div className="space-y-4">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     <span className="material-symbols-outlined">domain</span>
                   </div>
-                  {client.industry && (
+                  {client.industryType && (
                     <span className="badge-neutral text-xs">
-                      {client.industry}
+                      {client.industryType}
                     </span>
                   )}
                 </div>
@@ -101,7 +113,12 @@ export default function EmployeeClients() {
                 {/* Company details */}
                 <div>
                   <h3 className="text-title-lg font-bold text-on-surface tracking-tight leading-snug">{client.name}</h3>
-                  <p className="text-label-md text-outline mt-1">Client ID: {client.id.substring(0, 8)}...</p>
+                  {client.recruitmentPositionRequired && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary-container text-on-secondary-container text-label-sm font-semibold">
+                      <span className="material-symbols-outlined text-[14px]">work</span>
+                      {client.recruitmentPositionRequired}
+                    </div>
+                  )}
                 </div>
 
                 {/* Contact information */}
@@ -128,6 +145,7 @@ export default function EmployeeClients() {
               {/* Footer action */}
               <div className="pt-4 border-t border-outline-variant/30 flex items-center justify-between text-label-md text-outline">
                 <span>Added {new Date(client.createdAt).toLocaleDateString()}</span>
+                <span className="text-primary font-medium flex items-center gap-1">View Details <span className="material-symbols-outlined text-[16px]">arrow_forward</span></span>
               </div>
             </div>
           ))}
@@ -153,6 +171,120 @@ export default function EmployeeClients() {
             >
               Next
             </button>
+          </div>
+        </div>
+      )}
+      {/* Client Details Modal */}
+      {isModalOpen && selectedClient && (
+        <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card max-w-3xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => { setIsModalOpen(false); setSelectedClient(null); }}
+              className="absolute top-6 right-6 btn-icon bg-surface-container hover:bg-surface-container-high rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+
+            <div className="flex items-center gap-4 mb-8 border-b border-outline-variant/30 pb-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined text-3xl">domain</span>
+              </div>
+              <div>
+                <h2 className="text-headline-sm font-bold text-on-surface">{selectedClient.name}</h2>
+                {selectedClient.industryType && (
+                  <span className="badge-neutral text-xs mt-1 inline-block">
+                    {selectedClient.industryType}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-8">
+              {/* Core Info */}
+              {selectedClient.recruitmentPositionRequired && (
+                <div className="bg-secondary-container/50 p-5 rounded-2xl border border-secondary/20">
+                  <p className="text-label-md text-on-secondary-container/80 uppercase tracking-wider font-bold mb-1">Recruitment Position Required</p>
+                  <div className="flex items-center gap-2 text-on-secondary-container">
+                    <span className="material-symbols-outlined text-[24px]">work</span>
+                    <span className="text-title-md font-bold">{selectedClient.recruitmentPositionRequired}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Company Info */}
+              <div>
+                <h3 className="text-title-md font-bold text-on-surface mb-4">Company Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
+                  <div>
+                    <p className="text-label-md text-outline">Company Type</p>
+                    <p className="text-body-lg font-medium text-on-surface">{selectedClient.companyType || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-label-md text-outline">Website</p>
+                    {selectedClient.website ? (
+                      <a href={selectedClient.website.startsWith('http') ? selectedClient.website : `https://${selectedClient.website}`} target="_blank" rel="noopener noreferrer" className="text-body-lg font-medium text-primary hover:underline flex items-center gap-1 w-fit">
+                        {selectedClient.website} <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                      </a>
+                    ) : <p className="text-body-lg font-medium text-on-surface">Not specified</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <h3 className="text-title-md font-bold text-on-surface mb-4">Location</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-4">
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <p className="text-label-md text-outline">Company Address</p>
+                    <p className="text-body-lg font-medium text-on-surface">{selectedClient.companyAddress || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-label-md text-outline">City</p>
+                    <p className="text-body-lg font-medium text-on-surface">{selectedClient.city || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-label-md text-outline">State</p>
+                    <p className="text-body-lg font-medium text-on-surface">{selectedClient.state || 'Not specified'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div>
+                <h3 className="text-title-md font-bold text-on-surface mb-4">Primary Contact</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4 bg-surface-container-low p-5 rounded-2xl">
+                  <div className="sm:col-span-2">
+                    <p className="text-label-md text-outline">Contact Name</p>
+                    <p className="text-body-lg font-bold text-on-surface">{selectedClient.contactName || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-label-md text-outline">Email</p>
+                    {selectedClient.email ? (
+                      <a href={`mailto:${selectedClient.email}`} className="text-body-lg font-medium text-primary hover:underline flex items-center gap-1.5 w-fit">
+                        <span className="material-symbols-outlined text-[16px]">mail</span> {selectedClient.email}
+                      </a>
+                    ) : <p className="text-body-lg font-medium text-on-surface">Not specified</p>}
+                  </div>
+                  <div>
+                    <p className="text-label-md text-outline">Phone</p>
+                    {selectedClient.phone ? (
+                      <a href={`tel:${selectedClient.phone}`} className="text-body-lg font-medium text-primary hover:underline flex items-center gap-1.5 w-fit">
+                        <span className="material-symbols-outlined text-[16px]">phone</span> {selectedClient.phone}
+                      </a>
+                    ) : <p className="text-body-lg font-medium text-on-surface">Not specified</p>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-8 flex justify-end">
+                <button
+                  onClick={() => { setIsModalOpen(false); setSelectedClient(null); }}
+                  className="btn-primary px-8"
+                >
+                  Close Details
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

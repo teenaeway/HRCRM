@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function AdminNotices() {
   const [notices, setNotices] = useState([]);
@@ -15,6 +16,10 @@ export default function AdminNotices() {
   useEffect(() => {
     fetchNotices();
   }, []);
+
+  useRealtimeSync('Notice', () => {
+    fetchNotices();
+  });
 
   const fetchNotices = async () => {
     try {

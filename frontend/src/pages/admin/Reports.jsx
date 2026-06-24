@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Download, Users, Calendar, Activity, Filter } from 'lucide-react';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -20,6 +21,10 @@ export default function AdminReports() {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useRealtimeSync('Activity', () => setRefreshTrigger(prev => prev + 1));
+  useRealtimeSync('Candidate', () => setRefreshTrigger(prev => prev + 1));
 
   // Fetch employee list on mount
   useEffect(() => {
@@ -54,7 +59,7 @@ export default function AdminReports() {
       }
     };
     fetchReport();
-  }, [selectedEmployee, startDate, endDate]);
+  }, [selectedEmployee, startDate, endDate, refreshTrigger]);
 
   const handleExportCSV = () => {
     if (!reportData) return;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function AdminClients() {
   const [clients, setClients] = useState([]);
@@ -24,7 +25,13 @@ export default function AdminClients() {
     contactName: '',
     email: '',
     phone: '',
-    employeeId: ''
+    employeeId: '',
+    companyType: '',
+    website: '',
+    companyAddress: '',
+    state: '',
+    city: '',
+    industryType: ''
   });
 
   // Search/Filter state
@@ -35,6 +42,10 @@ export default function AdminClients() {
     fetchClients();
     fetchEmployees();
   }, []);
+
+  useRealtimeSync('Client', () => {
+    fetchClients(meta.page);
+  });
 
   const fetchClients = async (page = 1) => {
     try {
@@ -66,7 +77,13 @@ export default function AdminClients() {
       contactName: '',
       email: '',
       phone: '',
-      employeeId: ''
+      employeeId: '',
+      companyType: '',
+      website: '',
+      companyAddress: '',
+      state: '',
+      city: '',
+      industryType: ''
     });
     setIsFormModalOpen(true);
   };
@@ -79,7 +96,13 @@ export default function AdminClients() {
       contactName: client.contactName || '',
       email: client.email || '',
       phone: client.phone || '',
-      employeeId: client.employeeId || ''
+      employeeId: client.employeeId || '',
+      companyType: client.companyType || '',
+      website: client.website || '',
+      companyAddress: client.companyAddress || '',
+      state: client.state || '',
+      city: client.city || '',
+      industryType: client.industryType || ''
     });
     setIsFormModalOpen(true);
   };
@@ -355,7 +378,7 @@ export default function AdminClients() {
       {/* Add / Edit Client Modal */}
       {isFormModalOpen && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="card max-w-lg w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+          <div className="card max-w-2xl w-full p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsFormModalOpen(false)}
               className="absolute top-6 right-6 btn-icon"
@@ -368,27 +391,95 @@ export default function AdminClients() {
             </h2>
 
             <form onSubmit={handleFormSubmit} className="space-y-5">
-              <div>
-                <label className="input-label">Client / Company Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Acme Corp"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="input-field"
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-1 md:col-span-2">
+                  <label className="input-label">Client / Company Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Acme Corp"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
 
-              <div>
-                <label className="input-label">Recruitment Position Required</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Software Engineer, Sales Manager"
-                  value={formData.recruitmentPositionRequired}
-                  onChange={(e) => setFormData({ ...formData, recruitmentPositionRequired: e.target.value })}
-                  className="input-field"
-                />
+                <div>
+                  <label className="input-label">Company Type</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. LLC, Public, Private"
+                    value={formData.companyType}
+                    onChange={(e) => setFormData({ ...formData, companyType: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="input-label">Industry Type</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Technology, Healthcare"
+                    value={formData.industryType}
+                    onChange={(e) => setFormData({ ...formData, industryType: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="input-label">Website</label>
+                  <input
+                    type="text"
+                    placeholder="https://example.com"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="input-label">Recruitment Position Required</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Software Engineer"
+                    value={formData.recruitmentPositionRequired}
+                    onChange={(e) => setFormData({ ...formData, recruitmentPositionRequired: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="col-span-1 md:col-span-2">
+                  <label className="input-label">Company Address</label>
+                  <input
+                    type="text"
+                    placeholder="123 Business St, Suite 100"
+                    value={formData.companyAddress}
+                    onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="input-label">City</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. New York"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label className="input-label">State</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. NY"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
               </div>
 
               <div className="border-t border-outline-variant/30 pt-4">

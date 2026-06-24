@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { Activity, Send, CheckCircle2 } from 'lucide-react';
+import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function EmployeeActivities() {
   const [activities, setActivities] = useState([]);
@@ -9,19 +10,24 @@ export default function EmployeeActivities() {
   const [dailyInputText, setDailyInputText] = useState('');
   const [submittingDaily, setSubmittingDaily] = useState(false);
 
+  const fetchActivities = async () => {
+    try {
+      const res = await api.get('/activities');
+      setActivities(res.data);
+    } catch (err) {
+      console.error('Failed to load activities', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const res = await api.get('/activities');
-        setActivities(res.data);
-      } catch (err) {
-        console.error('Failed to load activities', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchActivities();
   }, []);
+
+  useRealtimeSync('Activity', () => {
+    fetchActivities();
+  });
 
   // Check if daily input already exists for today
   const today = new Date().toISOString().split('T')[0];

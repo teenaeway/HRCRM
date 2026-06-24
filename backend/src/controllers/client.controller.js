@@ -43,7 +43,10 @@ export const getClients = async (req, res) => {
 // Create a new client (Admin only)
 export const createClient = async (req, res) => {
   try {
-    const { name, recruitmentPositionRequired, contactName, email, phone, employeeId } = req.body;
+    const { 
+      name, recruitmentPositionRequired, contactName, email, phone, employeeId,
+      companyType, website, companyAddress, state, city, industryType
+    } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: 'Client name is required' });
@@ -61,6 +64,12 @@ export const createClient = async (req, res) => {
         email,
         phone,
         employeeId: employeeId || null,
+        companyType,
+        website,
+        companyAddress,
+        state,
+        city,
+        industryType
       })
       .select('*, employee:Employee(id, name, email)')
       .single();
@@ -77,7 +86,10 @@ export const createClient = async (req, res) => {
 export const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, recruitmentPositionRequired, contactName, email, phone, employeeId } = req.body;
+    const { 
+      name, recruitmentPositionRequired, contactName, email, phone, employeeId,
+      companyType, website, companyAddress, state, city, industryType
+    } = req.body;
 
     const { data: existingClient, error: findError } = await supabase.from('Client').select('*').eq('id', id).maybeSingle();
     if (findError) throw findError;
@@ -94,6 +106,12 @@ export const updateClient = async (req, res) => {
         email,
         phone,
         employeeId: employeeId !== undefined ? employeeId : existingClient.employeeId,
+        companyType,
+        website,
+        companyAddress,
+        state,
+        city,
+        industryType
       })
       .eq('id', id)
       .select('*, employee:Employee(id, name, email)')
