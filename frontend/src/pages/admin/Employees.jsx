@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function AdminEmployees() {
@@ -34,10 +34,11 @@ export default function AdminEmployees() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/employees');
-      setEmployees(res.data);
+      const { data, error } = await supabase.from('Employee').select('*').order('name');
+      if (error) throw error;
+      setEmployees(data || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch employees');
+      setError(err.message || 'Failed to fetch employees');
     } finally {
       setLoading(false);
     }
@@ -71,28 +72,44 @@ export default function AdminEmployees() {
     try {
       if (selectedEmployee) {
         // Edit mode (only send password if it's filled)
-        const updateData = { name: formData.name, email: formData.email, phone: formData.phone, address: formData.address };
-        if (formData.password) updateData.password = formData.password;
-        const res = await api.put(`/employees/${selectedEmployee.id}`, updateData);
-        setEmployees(employees.map(emp => emp.id === selectedEmployee.id ? res.data : emp));
+        const payload = { name: formData.name, email: formData.email, phone: formData.phone, address: formData.address };
+        if (formData.password) payload.password = formData.password;
+        
+        const { data, error } = await supabase.functions.invoke('manage-employees', {
+          body: { action: 'update', employeeId: selectedEmployee.id, payload }
+        });
+        if (error) throw new Error(error.message || 'Operation failed');
+        if (data?.error) throw new Error(data.error);
+
+        setEmployees(employees.map(emp => emp.id === selectedEmployee.id ? data.employee : emp));
       } else {
         // Create mode
-        const res = await api.post('/employees', formData);
-        setEmployees([res.data, ...employees]);
+        const { data, error } = await supabase.functions.invoke('manage-employees', {
+          body: { action: 'create', payload: formData }
+        });
+        if (error) throw new Error(error.message || 'Operation failed');
+        if (data?.error) throw new Error(data.error);
+
+        setEmployees([data.employee, ...employees]);
       }
       setIsFormModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      setError(err.message || 'Operation failed');
     }
   };
 
   const handleDeleteSubmit = async () => {
     try {
-      await api.delete(`/employees/${selectedEmployee.id}`);
+      const { data, error } = await supabase.functions.invoke('manage-employees', {
+        body: { action: 'delete', employeeId: selectedEmployee.id }
+      });
+      if (error) throw new Error(error.message || 'Deletion failed');
+      if (data?.error) throw new Error(data.error);
+
       setEmployees(employees.filter(emp => emp.id !== selectedEmployee.id));
       setIsDeleteModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Deletion failed');
+      setError(err.message || 'Deletion failed');
     }
   };
 

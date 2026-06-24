@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Download, Users, Calendar, Activity, Filter } from 'lucide-react';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
@@ -30,8 +30,9 @@ export default function AdminReports() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const res = await api.get('/employees');
-        setEmployees(res.data);
+        const { data, error } = await supabase.from('Employee').select('*').order('name');
+        if (error) throw error;
+        setEmployees(data || []);
       } catch (err) {
         console.error("Failed to fetch employees", err);
       } finally {
@@ -50,8 +51,73 @@ export default function AdminReports() {
     const fetchReport = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/reports/employee/${selectedEmployee}?startDate=${startDate}&endDate=${endDate}`);
-        setReportData(res.data);
+        const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
+        const end = endDate ? new Date(endDate) : new Date();
+        end.setHours(23, 59, 59, 999);
+
+        const [
+          { data: activities },
+          { data: candidates },
+          { data: clients },
+          { data: employee }
+        ] = await Promise.all([
+          supabase
+            .from('ActivityLog')
+            .select('*, candidate:candidateId(name, displayId)')
+            .eq('employeeId', selectedEmployee)
+            .gte('createdAt', start.toISOString())
+            .lte('createdAt', end.toISOString())
+            .order('createdAt', { ascending: false }),
+          supabase
+            .from('Candidate')
+            .select('*')
+            .eq('selectedById', selectedEmployee),
+          supabase
+            .from('Client')
+            .select('*')
+            .eq('employeeId', selectedEmployee),
+          supabase
+            .from('Employee')
+            .select('id, name, displayId')
+            .eq('id', selectedEmployee)
+            .single()
+        ]);
+
+        const statusCounts = {};
+        (candidates || []).forEach(c => {
+          statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+        });
+        const pieChartData = Object.keys(statusCounts).map(key => ({
+          name: key,
+          value: statusCounts[key]
+        }));
+
+        const lineChartMap = {};
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dateStr = d.toISOString().split('T')[0];
+            const endOfDay = new Date(d);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const candidatesCount = (candidates || []).filter(c => new Date(c.updatedAt || c.createdAt) <= endOfDay).length;
+            const clientsCount = (clients || []).filter(c => new Date(c.updatedAt || c.createdAt) <= endOfDay).length;
+
+            lineChartMap[dateStr] = { 
+                date: dateStr, 
+                candidatesSelected: candidatesCount, 
+                clientsAssigned: clientsCount 
+            };
+        }
+
+        const lineChartData = Object.values(lineChartMap).sort((a, b) => a.date.localeCompare(b.date));
+
+        setReportData({
+          employee,
+          activities: activities || [],
+          pieChartData,
+          lineChartData,
+          candidates: candidates || []
+        });
+
       } catch (err) {
         console.error("Failed to fetch report", err);
       } finally {

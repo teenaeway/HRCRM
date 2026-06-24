@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
+import useAuthStore from '../../store/authStore';
 
 export default function AdminNotices() {
+  const { user } = useAuthStore();
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,10 +26,16 @@ export default function AdminNotices() {
   const fetchNotices = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/notices');
-      setNotices(res.data);
+      const { data, error } = await supabase
+        .from('Notice')
+        .select('*, Admin:adminId(name)')
+        .order('createdAt', { ascending: false });
+        
+      if (error) throw error;
+      
+      setNotices(data.map(n => ({ ...n, admin: n.Admin })));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch notices');
+      setError(err.message || 'Failed to fetch notices');
     } finally {
       setLoading(false);
     }
@@ -41,11 +49,22 @@ export default function AdminNotices() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/notices', formData);
-      setNotices([res.data, ...notices]);
+      const { data, error } = await supabase
+        .from('Notice')
+        .insert([{
+          title: formData.title,
+          content: formData.content,
+          adminId: user.id
+        }])
+        .select('*, Admin:adminId(name)')
+        .single();
+        
+      if (error) throw error;
+      
+      setNotices([{ ...data, admin: data.Admin }, ...notices]);
       setIsFormModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      setError(err.message || 'Operation failed');
     }
   };
 
@@ -56,11 +75,17 @@ export default function AdminNotices() {
 
   const handleDeleteSubmit = async () => {
     try {
-      await api.delete(`/notices/${selectedNotice.id}`);
+      const { error } = await supabase
+        .from('Notice')
+        .delete()
+        .eq('id', selectedNotice.id);
+        
+      if (error) throw error;
+      
       setNotices(notices.filter(n => n.id !== selectedNotice.id));
       setIsDeleteModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Deletion failed');
+      setError(err.message || 'Deletion failed');
     }
   };
 

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import useAuthStore from '../../store/authStore';
 
 const loginSchema = z.object({
@@ -27,19 +27,29 @@ export default function UnifiedLogin() {
   const onSubmit = async (data) => {
     try {
       setApiError('');
-      const res = await api.post(`/auth/${role}/login`, data);
+      
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) throw error;
+
+      const userMeta = authData.user.user_metadata || {};
+      const userRole = userMeta.role || role;
+
       setAuth(
         {
-          id: res.data.id,
-          name: res.data.name,
-          email: res.data.email,
-          role: res.data.role,
+          id: authData.user.id,
+          name: userMeta.name || authData.user.email,
+          email: authData.user.email,
+          role: userRole,
         },
-        res.data.token
+        authData.session.access_token
       );
-      navigate(`/${role}/dashboard`);
+      navigate(`/${userRole}/dashboard`);
     } catch (err) {
-      setApiError(err.response?.data?.message || 'Invalid email or password');
+      setApiError(err.message || 'Invalid email or password');
     }
   };
 

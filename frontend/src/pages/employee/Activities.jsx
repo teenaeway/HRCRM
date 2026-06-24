@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import { Activity, Send, CheckCircle2 } from 'lucide-react';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
+import useAuthStore from '../../store/authStore';
 
 export default function EmployeeActivities() {
+  const { user } = useAuthStore();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -12,8 +14,15 @@ export default function EmployeeActivities() {
 
   const fetchActivities = async () => {
     try {
-      const res = await api.get('/activities');
-      setActivities(res.data);
+      const { data, error } = await supabase
+        .from('ActivityLog')
+        .select('*, Candidate:candidateId(name)')
+        .eq('employeeId', user?.id)
+        .order('createdAt', { ascending: false });
+        
+      if (error) throw error;
+      
+      setActivities(data.map(a => ({ ...a, candidate: a.Candidate })));
     } catch (err) {
       console.error('Failed to load activities', err);
     } finally {
@@ -42,12 +51,20 @@ export default function EmployeeActivities() {
     
     setSubmittingDaily(true);
     try {
-      const res = await api.post('/activities', {
-        action: 'Daily Input',
-        details: dailyInputText.trim()
-      });
-      // Add it to the top of activities to show it in real-time
-      setActivities(prev => [res.data, ...prev]);
+      const { data, error } = await supabase
+        .from('ActivityLog')
+        .insert([{
+          action: 'Daily Input',
+          details: dailyInputText.trim(),
+          employeeId: user.id
+        }])
+        .select('*, Candidate:candidateId(name)')
+        .single();
+        
+      if (error) throw error;
+      
+      const newActivity = { ...data, candidate: data.Candidate };
+      setActivities(prev => [newActivity, ...prev]);
       setDailyInputText('');
     } catch (err) {
       console.error('Failed to submit daily input', err);

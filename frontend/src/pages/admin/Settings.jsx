@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 
 export default function AdminSettings() {
   const { user, token, setAuth } = useAuthStore();
@@ -30,7 +30,18 @@ export default function AdminSettings() {
         return;
       }
 
-      const res = await api.put('/auth/admin/settings', payload);
+      if (payload.name) {
+        const { error: dbError } = await supabase.from('Admin').update({ name: payload.name }).eq('id', user.id);
+        if (dbError) throw dbError;
+        
+        const { error: authError } = await supabase.auth.updateUser({ data: { name: payload.name } });
+        if (authError) throw authError;
+      }
+
+      if (payload.password) {
+        const { error: authError } = await supabase.auth.updateUser({ password: payload.password });
+        if (authError) throw authError;
+      }
       
       // Update local store with new name if changed
       if (payload.name) {
@@ -41,7 +52,7 @@ export default function AdminSettings() {
       setMessage({ text: 'Settings updated successfully!', type: 'success' });
     } catch (error) {
       setMessage({ 
-        text: error.response?.data?.message || 'Failed to update settings', 
+        text: error.message || 'Failed to update settings', 
         type: 'error' 
       });
     } finally {

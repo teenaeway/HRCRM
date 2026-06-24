@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
 
 export default function AdminClients() {
@@ -50,11 +50,20 @@ export default function AdminClients() {
   const fetchClients = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await api.get('/clients', { params: { page, limit: 10 } });
-      setClients(res.data.data || res.data);
-      if (res.data.meta) setMeta(res.data.meta);
+      const from = (page - 1) * 10;
+      const to = from + 9;
+      const { data, count, error } = await supabase
+        .from('Client')
+        .select('*, employee:employeeId(name)', { count: 'exact' })
+        .order('createdAt', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      
+      setClients(data || []);
+      setMeta({ page, limit: 10, total: count || 0, totalPages: Math.ceil((count || 0) / 10) || 1 });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch clients');
+      setError(err.message || 'Failed to fetch clients');
     } finally {
       setLoading(false);
     }
@@ -62,8 +71,12 @@ export default function AdminClients() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await api.get('/clients/employees');
-      setEmployees(res.data);
+      const { data, error } = await supabase
+        .from('Employee')
+        .select('id, name, email')
+        .order('name');
+      if (error) throw error;
+      setEmployees(data || []);
     } catch (err) {
       console.error('Failed to fetch employees list', err);
     }
@@ -121,41 +134,64 @@ export default function AdminClients() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Supabase expects empty strings for foreign keys to be null, or omitted if empty
+      const payload = { ...formData };
+      if (!payload.employeeId) payload.employeeId = null;
+
       if (selectedClient) {
         // Edit mode
-        const res = await api.put(`/clients/${selectedClient.id}`, formData);
-        setClients(clients.map(c => c.id === selectedClient.id ? res.data : c));
+        const { data, error } = await supabase
+          .from('Client')
+          .update(payload)
+          .eq('id', selectedClient.id)
+          .select('*, employee:employeeId(name)')
+          .single();
+        if (error) throw error;
+        setClients(clients.map(c => c.id === selectedClient.id ? data : c));
       } else {
         // Create mode
-        const res = await api.post('/clients', formData);
-        setClients([res.data, ...clients]);
+        const { data, error } = await supabase
+          .from('Client')
+          .insert([payload])
+          .select('*, employee:employeeId(name)')
+          .single();
+        if (error) throw error;
+        setClients([data, ...clients]);
       }
       setIsFormModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      setError(err.message || 'Operation failed');
     }
   };
 
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.patch(`/clients/${selectedClient.id}/assign`, {
-        employeeId: assigneeId || null
-      });
-      setClients(clients.map(c => c.id === selectedClient.id ? res.data : c));
+      const { data, error } = await supabase
+        .from('Client')
+        .update({ employeeId: assigneeId || null })
+        .eq('id', selectedClient.id)
+        .select('*, employee:employeeId(name)')
+        .single();
+      if (error) throw error;
+      setClients(clients.map(c => c.id === selectedClient.id ? data : c));
       setIsAssignModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Assignment failed');
+      setError(err.message || 'Assignment failed');
     }
   };
 
   const handleDeleteSubmit = async () => {
     try {
-      await api.delete(`/clients/${selectedClient.id}`);
+      const { error } = await supabase
+        .from('Client')
+        .delete()
+        .eq('id', selectedClient.id);
+      if (error) throw error;
       setClients(clients.filter(c => c.id !== selectedClient.id));
       setIsDeleteModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Deletion failed');
+      setError(err.message || 'Deletion failed');
     }
   };
 

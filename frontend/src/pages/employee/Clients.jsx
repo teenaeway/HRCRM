@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
+import useAuthStore from '../../store/authStore';
 
 export default function EmployeeClients() {
+  const { user } = useAuthStore();
   const [clients, setClients] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -22,11 +24,22 @@ export default function EmployeeClients() {
   const fetchMyClients = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await api.get('/clients', { params: { page, limit: 10 } });
-      setClients(res.data.data || res.data);
-      if (res.data.meta) setMeta(res.data.meta);
+      const from = (page - 1) * 10;
+      const to = from + 9;
+      
+      const { data, count, error } = await supabase
+        .from('Client')
+        .select('*', { count: 'exact' })
+        .eq('employeeId', user?.id)
+        .order('createdAt', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      
+      setClients(data || []);
+      setMeta({ page, limit: 10, total: count || 0, totalPages: Math.ceil((count || 0) / 10) || 1 });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch your clients');
+      setError(err.message || 'Failed to fetch your clients');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import { Users, Briefcase, FileText, Activity } from 'lucide-react';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
 
@@ -19,8 +19,25 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const res = await api.get('/dashboard/admin');
-      setData(res.data);
+      const [
+        { count: totalClients },
+        { count: totalEmployees },
+        { count: totalCandidates },
+        { data: activities }
+      ] = await Promise.all([
+        supabase.from('Client').select('*', { count: 'exact', head: true }),
+        supabase.from('Employee').select('*', { count: 'exact', head: true }),
+        supabase.from('Candidate').select('*', { count: 'exact', head: true }),
+        supabase.from('ActivityLog')
+          .select('*, employee:employeeId(name), candidate:candidateId(name)')
+          .order('createdAt', { ascending: false })
+          .limit(10)
+      ]);
+
+      setData({
+        metrics: { totalClients, totalEmployees, totalCandidates },
+        recentActivities: activities || []
+      });
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {

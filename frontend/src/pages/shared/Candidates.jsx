@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import useAuthStore from '../../store/authStore';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
 
@@ -62,14 +62,26 @@ export default function Candidates() {
   const fetchCandidates = async (page = 1) => {
     try {
       setLoading(true);
-      const params = { page, limit: 10 };
-      if (searchTerm) params.search = searchTerm;
-      if (statusFilter) params.status = statusFilter;
-      const res = await api.get('/candidate', { params });
-      setCandidates(res.data.data || res.data); // Fallback if backend not fully updated
-      if (res.data.meta) setMeta(res.data.meta);
+      const from = (page - 1) * 10;
+      const to = from + 9;
+      
+      let query = supabase
+        .from('Candidate')
+        .select('*, selectedBy:selectedById(name)', { count: 'exact' })
+        .order('createdAt', { ascending: false });
+        
+      if (statusFilter) query = query.eq('status', statusFilter);
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,skills.ilike.%${searchTerm}%`);
+      }
+      
+      const { data, count, error } = await query.range(from, to);
+      if (error) throw error;
+      
+      setCandidates(data || []);
+      setMeta({ page, limit: 10, total: count || 0, totalPages: Math.ceil((count || 0) / 10) || 1 });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch candidates');
+      setError(err.message || 'Failed to fetch candidates');
     } finally {
       setLoading(false);
     }
@@ -117,41 +129,56 @@ export default function Candidates() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      const fd = new FormData();
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== undefined) {
-          fd.append(key, formData[key]);
-        }
-      });
+      const payload = { ...formData };
+
+      // Handle optional file uploads via Supabase Storage
       if (resumeFile) {
-        fd.append('resume', resumeFile);
-      }
-      if (photoFile) {
-        fd.append('photo', photoFile);
+        const fileExt = resumeFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('resumes').upload(`public/${fileName}`, resumeFile);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('resumes').getPublicUrl(`public/${fileName}`);
+        payload.resumeUrl = publicUrl;
       }
 
-      if (selected) {
-        const res = await api.put(`/candidate/${selected.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        setCandidates(candidates.map(c => c.id === selected.id ? res.data : c));
-      } else {
-        const res = await api.post('/candidate', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        setCandidates([res.data, ...candidates]);
+      if (photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('photos').upload(`public/${fileName}`, photoFile);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(`public/${fileName}`);
+        payload.photoUrl = publicUrl;
       }
+      
+      // Clean up empty strings for numbers if needed
+      if (!payload.experience) payload.experience = null;
+
+      if (selected) {
+        const { data, error } = await supabase.from('Candidate').update(payload).eq('id', selected.id).select('*, selectedBy:selectedById(name)').single();
+        if (error) throw error;
+        setCandidates(candidates.map(c => c.id === selected.id ? data : c));
+      } else {
+        const { data, error } = await supabase.from('Candidate').insert([payload]).select('*, selectedBy:selectedById(name)').single();
+        if (error) throw error;
+        setCandidates([data, ...candidates]);
+      }
+      
       setIsFormOpen(false);
       setResumeFile(null);
       setPhotoFile(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      setError(err.message || 'Operation failed');
     }
   };
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/candidate/${selected.id}`);
+      const { error } = await supabase.from('Candidate').delete().eq('id', selected.id);
+      if (error) throw error;
       setCandidates(candidates.filter(c => c.id !== selected.id));
       setIsDeleteOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Deletion failed');
+      setError(err.message || 'Deletion failed');
     }
   };
 
@@ -159,17 +186,22 @@ export default function Candidates() {
     if (!resumeFile || !selected) return;
     try {
       setUploading(true);
-      const fd = new FormData();
-      fd.append('resume', resumeFile);
-      const res = await api.post(`/candidate/${selected.id}/resume`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setCandidates(candidates.map(c => c.id === selected.id ? { ...c, resumeUrl: res.data.resumeUrl } : c));
-      setSelected(prev => ({ ...prev, resumeUrl: res.data.resumeUrl }));
+      const fileExt = resumeFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('resumes').upload(`public/${fileName}`, resumeFile);
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage.from('resumes').getPublicUrl(`public/${fileName}`);
+      
+      const { data, error } = await supabase.from('Candidate').update({ resumeUrl: publicUrl }).eq('id', selected.id).select('*, selectedBy:selectedById(name)').single();
+      if (error) throw error;
+      
+      setCandidates(candidates.map(c => c.id === selected.id ? data : c));
+      setSelected(data);
       setResumeFile(null);
       alert('Resume uploaded successfully!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Upload failed');
+      setError(err.message || 'Upload failed');
     } finally {
       setUploading(false);
     }
@@ -178,13 +210,22 @@ export default function Candidates() {
   const handleToggleSelect = async (e, candidate) => {
     e.stopPropagation();
     try {
-      const res = await api.patch(`/candidate/${candidate.id}/select`);
-      setCandidates(candidates.map(c => c.id === candidate.id ? res.data : c));
+      const isSelected = candidate.selectedById === user?.id;
+      const { data, error } = await supabase
+        .from('Candidate')
+        .update({ selectedById: isSelected ? null : user?.id, status: isSelected ? 'Registered' : 'Selected' })
+        .eq('id', candidate.id)
+        .select('*, selectedBy:selectedById(name)')
+        .single();
+        
+      if (error) throw error;
+      
+      setCandidates(candidates.map(c => c.id === candidate.id ? data : c));
       if (selected && selected.id === candidate.id) {
-        setSelected(res.data);
+        setSelected(data);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to toggle selection');
+      setError(err.message || 'Failed to toggle selection');
     }
   };
 

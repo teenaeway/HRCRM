@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import supabase from '../../services/supabase';
 import useAuthStore from '../../store/authStore';
 import { Building, Activity, Bell, Users } from 'lucide-react';
 import useRealtimeSync from '../../hooks/useRealtimeSync';
@@ -19,20 +19,32 @@ export default function EmployeeDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [dashRes, noticesRes] = await Promise.all([
-          api.get('/dashboard/employee'),
-          api.get('/notices')
+        const [
+          { count: myClientsCount },
+          { data: activities },
+          { data: selectedCands },
+          { data: noticesData }
+        ] = await Promise.all([
+          supabase.from('Client').select('*', { count: 'exact', head: true }).eq('employeeId', user?.id),
+          supabase.from('ActivityLog').select('*, candidate:candidateId(name)').eq('employeeId', user?.id).order('createdAt', { ascending: false }).limit(10),
+          supabase.from('Candidate').select('*').eq('employeeId', user?.id).eq('status', 'Selected').order('createdAt', { ascending: false }).limit(10),
+          supabase.from('Notice').select('*, admin:Admin(name)').order('createdAt', { ascending: false }).limit(5)
         ]);
-        setData(dashRes.data);
-        setNotices(noticesRes.data);
+
+        setData({
+          metrics: { myClientsCount: myClientsCount || 0 },
+          recentActivities: activities || [],
+          selectedCandidates: selectedCands || []
+        });
+        setNotices(noticesData || []);
       } catch (err) {
         console.error('Failed to load employee dashboard data:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [refreshTrigger]);
+    if (user?.id) fetchData();
+  }, [refreshTrigger, user?.id]);
 
   if (loading) {
     return <div className="py-20 text-center"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div></div>;
