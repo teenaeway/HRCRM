@@ -422,8 +422,8 @@ export default function Candidates() {
                     onChange={(e) => setFormData({ ...formData, experience: e.target.value })} className="input-field" />
                 </div>
                 <div>
-                  <label className="input-label">Current/Latest Job Title *</label>
-                  <input required type="text" placeholder="Frontend Developer" value={formData.jobTitle}
+                  <label className="input-label">Current/Latest Job Title (Optional)</label>
+                  <input type="text" placeholder="Frontend Developer" value={formData.jobTitle}
                     onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })} className="input-field" />
                 </div>
               </div>
@@ -441,13 +441,13 @@ export default function Candidates() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="input-label">LinkedIn Profile *</label>
-                  <input required type="url" placeholder="https://linkedin.com/in/..." value={formData.linkedin}
+                  <label className="input-label">LinkedIn Profile (Optional)</label>
+                  <input type="url" placeholder="https://linkedin.com/in/..." value={formData.linkedin}
                     onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })} className="input-field" />
                 </div>
                 <div>
-                  <label className="input-label">Portfolio / GitHub *</label>
-                  <input required type="url" placeholder="https://github.com/..." value={formData.portfolio}
+                  <label className="input-label">Portfolio / GitHub (Optional)</label>
+                  <input type="url" placeholder="https://github.com/..." value={formData.portfolio}
                     onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })} className="input-field" />
                 </div>
               </div>

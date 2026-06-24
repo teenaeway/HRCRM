@@ -405,9 +405,10 @@ export default function AdminClients() {
                 </div>
 
                 <div>
-                  <label className="input-label">Company Type</label>
+                  <label className="input-label">Company Type *</label>
                   <input
                     type="text"
+                    required
                     placeholder="e.g. LLC, Public, Private"
                     value={formData.companyType}
                     onChange={(e) => setFormData({ ...formData, companyType: e.target.value })}
@@ -416,9 +417,10 @@ export default function AdminClients() {
                 </div>
 
                 <div>
-                  <label className="input-label">Industry Type</label>
+                  <label className="input-label">Industry Type *</label>
                   <input
                     type="text"
+                    required
                     placeholder="e.g. Technology, Healthcare"
                     value={formData.industryType}
                     onChange={(e) => setFormData({ ...formData, industryType: e.target.value })}
@@ -427,9 +429,10 @@ export default function AdminClients() {
                 </div>
 
                 <div>
-                  <label className="input-label">Website</label>
+                  <label className="input-label">Website *</label>
                   <input
                     type="text"
+                    required
                     placeholder="https://example.com"
                     value={formData.website}
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -438,9 +441,10 @@ export default function AdminClients() {
                 </div>
 
                 <div>
-                  <label className="input-label">Recruitment Position Required</label>
+                  <label className="input-label">Recruitment Position Required *</label>
                   <input
                     type="text"
+                    required
                     placeholder="e.g. Software Engineer"
                     value={formData.recruitmentPositionRequired}
                     onChange={(e) => setFormData({ ...formData, recruitmentPositionRequired: e.target.value })}
@@ -449,9 +453,10 @@ export default function AdminClients() {
                 </div>
 
                 <div className="col-span-1 md:col-span-2">
-                  <label className="input-label">Company Address</label>
+                  <label className="input-label">Company Address *</label>
                   <input
                     type="text"
+                    required
                     placeholder="123 Business St, Suite 100"
                     value={formData.companyAddress}
                     onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
@@ -460,9 +465,10 @@ export default function AdminClients() {
                 </div>
 
                 <div>
-                  <label className="input-label">City</label>
+                  <label className="input-label">City *</label>
                   <input
                     type="text"
+                    required
                     placeholder="e.g. New York"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -471,9 +477,10 @@ export default function AdminClients() {
                 </div>
 
                 <div>
-                  <label className="input-label">State</label>
+                  <label className="input-label">State *</label>
                   <input
                     type="text"
+                    required
                     placeholder="e.g. NY"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
@@ -486,9 +493,10 @@ export default function AdminClients() {
                 <h4 className="text-label-md font-bold text-outline uppercase tracking-wider mb-4">Contact Person</h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="input-label">Contact Name</label>
+                    <label className="input-label">Contact Name *</label>
                     <input
                       type="text"
+                      required
                       placeholder="e.g. John Doe"
                       value={formData.contactName}
                       onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
@@ -498,9 +506,10 @@ export default function AdminClients() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="input-label">Email</label>
+                      <label className="input-label">Email *</label>
                       <input
                         type="email"
+                        required
                         placeholder="john@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -508,9 +517,10 @@ export default function AdminClients() {
                       />
                     </div>
                     <div>
-                      <label className="input-label">Phone</label>
+                      <label className="input-label">Phone *</label>
                       <input
                         type="text"
+                        required
                         placeholder="+1 (555) 019-2834"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
