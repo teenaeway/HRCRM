@@ -8,10 +8,10 @@ HR-CRM is a recruitment and workforce management platform designed to connect fo
 - **Styling**: Tailwind CSS (with predefined tokens/variables in `index.css` and `style.css`)
 - **State Management**: Zustand
 - **Form Handling**: React Hook Form with Zod validation
-- **Backend**: Node.js + Express.js
-- **Database**: Prisma ORM (currently mapped to SQLite `dev.db`, although PostgreSQL is requested in PRD)
-- **Authentication**: JWT & bcryptjs
-- **File Uploads**: Multer (configured for local or Cloudinary as per PRD)
+- **Backend**: Supabase Edge Functions (Serverless)
+- **Database**: Supabase PostgreSQL
+- **Authentication**: Supabase Auth
+- **File Uploads**: Supabase Storage
 
 ## Project Architecture
 
@@ -26,14 +26,11 @@ The frontend is a Vite-powered React application with the following core directo
 - **`services/`**: API handlers, typically using Axios (`api.js`).
 - **`store/`**: Global state management with Zustand (`authStore.js`).
 
-### 2. Backend (`/backend`)
-The backend is an Express application structured with the following:
-- **`src/app.js` & `src/index.js`**: Application entry points and Express configuration.
-- **`src/controllers/`**: Business logic layer (e.g., `client.controller.js`, `auth.controller.js`, `candidate.controller.js`, `employee.controller.js`).
-- **`src/routes/`**: API route definitions mapping to controllers.
-- **`src/middleware/`**: Custom middleware (e.g., JWT authentication in `auth.middleware.js`).
-- **`src/utils/`**: Utility functions and Prisma client instantiations.
-- **`prisma/`**: Contains `schema.prisma` mapping out `Admin`, `Employee`, `Candidate`, `Client`, `CandidateDocument`, `ActivityLog`, and `Notice`.
+### 2. Backend (`/supabase`)
+The backend logic now completely runs on Supabase.
+- **Edge Functions**: Used for complex actions like managing employees (`manage-employees`).
+- **Database Policies (RLS)**: Row Level Security restricts data access instead of custom middleware.
+- **Native SDK**: The frontend interacts directly with `@supabase/supabase-js` instead of custom API endpoints.
 
 ## Core Features
 1. **Role-Based Authentication**: Admin, Employee, Candidate logins handled via JWT.

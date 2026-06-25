@@ -36,46 +36,24 @@
 
 ---
 
-## Backend
+## Backend & Database
 
-### Runtime
-- Node.js
-
-### Framework
-- Express.js
+### Platform
+- Supabase
 
 Responsibilities:
 
-- Authentication
-- CRUD Operations
-- Role Management
-- Candidate Tracking
-- Reporting APIs
-
----
-
-## Database
-
-### Primary Database
-- PostgreSQL
+- Authentication (Supabase Auth)
+- Database (PostgreSQL)
+- Storage (Supabase Storage)
+- Complex Logic (Supabase Edge Functions)
+- Row Level Security (RLS) policies
 
 Reason:
 
-- Relational structure fits CRM systems
-- Strong reporting capabilities
-- Excellent scalability
-
----
-
-## ORM
-
-### Prisma ORM
-
-Used For:
-
-- Database migrations
-- Query management
-- Relationship handling
+- Native SDK integration replaces custom API layer
+- Eliminates Express.js boilerplate
+- Scalable, serverless architecture
 
 ---
 
