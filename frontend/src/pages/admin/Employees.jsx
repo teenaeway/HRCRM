@@ -75,16 +75,22 @@ export default function AdminEmployees() {
         const payload = { name: formData.name, email: formData.email, phone: formData.phone, address: formData.address };
         if (formData.password) payload.password = formData.password;
         
-        const { data, error } = await supabase.from('Employee').update(payload).eq('id', selectedEmployee.id).select().single();
+        const { data, error } = await supabase.functions.invoke('manage-employees', {
+          body: { action: 'update', employeeId: selectedEmployee.id, payload }
+        });
         if (error) throw new Error(error.message || 'Operation failed');
+        if (data?.error) throw new Error(data.error);
 
-        setEmployees(employees.map(emp => emp.id === selectedEmployee.id ? data : emp));
+        setEmployees(employees.map(emp => emp.id === selectedEmployee.id ? data.employee : emp));
       } else {
         // Create mode
-        const { data, error } = await supabase.from('Employee').insert([formData]).select().single();
+        const { data, error } = await supabase.functions.invoke('manage-employees', {
+          body: { action: 'create', payload: formData }
+        });
         if (error) throw new Error(error.message || 'Operation failed');
+        if (data?.error) throw new Error(data.error);
 
-        setEmployees([data, ...employees]);
+        setEmployees([data.employee, ...employees]);
       }
       setIsFormModalOpen(false);
     } catch (err) {
@@ -94,11 +100,11 @@ export default function AdminEmployees() {
 
   const handleDeleteSubmit = async () => {
     try {
-      // Unassign clients first
-      await supabase.from('Client').update({ employeeId: null }).eq('employeeId', selectedEmployee.id);
-      
-      const { error } = await supabase.from('Employee').delete().eq('id', selectedEmployee.id);
+      const { data, error } = await supabase.functions.invoke('manage-employees', {
+        body: { action: 'delete', employeeId: selectedEmployee.id }
+      });
       if (error) throw new Error(error.message || 'Deletion failed');
+      if (data?.error) throw new Error(data.error);
 
       setEmployees(employees.filter(emp => emp.id !== selectedEmployee.id));
       setIsDeleteModalOpen(false);
