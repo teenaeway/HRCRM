@@ -4,8 +4,7 @@
   "description": "Unified root deployment package",
   "private": true,
   "scripts": {
-    "install": "npm --prefix backend install && npm --prefix frontend install",
-    "build": "npm --prefix frontend run build",
-    "start": "npm --prefix backend start"
+    "install": "npm --prefix frontend install",
+    "build": "npm --prefix frontend run build"
   }
 }
