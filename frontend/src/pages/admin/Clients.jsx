@@ -120,6 +120,25 @@ export default function AdminClients() {
     setIsFormModalOpen(true);
   };
 
+  const handleOpenDuplicate = (client) => {
+    setSelectedClient(null);
+    setFormData({
+      name: client.name ? `${client.name} (Copy)` : '',
+      recruitmentPositionRequired: '',
+      contactName: client.contactName || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      employeeId: client.employeeId || '',
+      companyType: client.companyType || '',
+      website: client.website || '',
+      companyAddress: client.companyAddress || '',
+      state: client.state || '',
+      city: client.city || '',
+      industryType: client.industryType || ''
+    });
+    setIsFormModalOpen(true);
+  };
+
   const handleOpenAssign = (client) => {
     setSelectedClient(client);
     setAssigneeId(client.employeeId || '');
@@ -357,6 +376,13 @@ export default function AdminClients() {
                     </td>
                     <td className="px-6 py-5 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleOpenDuplicate(client)}
+                          title="Duplicate Client"
+                          className="btn-icon hover:text-green-600"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">content_copy</span>
+                        </button>
                         <button
                           onClick={() => handleOpenAssign(client)}
                           title="Assign Recruiter"
