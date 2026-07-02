@@ -18,11 +18,13 @@ async function run() {
     email_confirm: true,
     user_metadata: { role: 'admin', name: 'Dummy Admin' }
   });
-
-  if (error) {
+ 
+  if (error) { 
     console.error('Error signing up admin:', error);
   } else {
     console.log('Success! Admin created with User ID:', data?.user?.id);
   }
+  // else{""}
 }
+
 run();

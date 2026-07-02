@@ -491,10 +491,9 @@ export default function AdminClients() {
                 </div>
 
                 <div>
-                  <label className="input-label">Website *</label>
+                  <label className="input-label">Website</label>
                   <input
                     type="text"
-                    required
                     placeholder="https://example.com"
                     value={formData.website}
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
